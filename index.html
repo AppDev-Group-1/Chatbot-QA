@@ -3,11 +3,164 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Answer Key Chatbot</title>
+    <title>Hardware QA Chatbot — CS Intelligent Systems</title>
+    <meta name="description" content="An intelligent Answer Key QA Chatbot powered by Levenshtein string matching for the CS Intelligent Systems course." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="src/ui/style.css" />
   </head>
   <body>
-    <div id="app"></div>
+
+    <!-- Ambient Background -->
+    <div class="ambient-bg" aria-hidden="true">
+      <div class="grid-overlay"></div>
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="noise-overlay"></div>
+    </div>
+
+    <div id="app">
+      
+      <!-- Sidebar for Chat History -->
+      <aside id="sidebar">
+        <div class="sidebar-header">
+          <h2>Conversations</h2>
+          <button id="new-chat-btn" aria-label="New Chat" data-tooltip="Start New Chat">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="sidebar-content" id="history-list">
+          <!-- Session items injected here -->
+        </div>
+      </aside>
+
+      <div id="chat-container">
+
+        <!-- Header -->
+        <header id="chat-header">
+          <div id="bot-avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div id="header-info">
+            <h1>Hardware QA Model</h1>
+            <div id="online-status">
+              <span class="pulse-ring">
+                <span id="status-dot" aria-hidden="true"></span>
+              </span>
+              <span>Levenshtein Engine Active</span>
+            </div>
+          </div>
+
+          <button id="reset-btn" aria-label="Reset conversation" data-tooltip="Reset conversation">
+            <div class="loader">
+              <svg id="cloud" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                <defs>
+                  <filter id="roundness">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.5"></feGaussianBlur>
+                    <feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -10"></feColorMatrix>
+                  </filter>
+                  <mask id="shapes">
+                    <g fill="white">
+                      <polygon points="50 37.5 80 75 20 75 50 37.5"></polygon>
+                      <circle cx="20" cy="60" r="15"></circle>
+                      <circle cx="80" cy="60" r="15"></circle>
+                      <g>
+                        <circle cx="20" cy="60" r="15"></circle>
+                        <circle cx="20" cy="60" r="15"></circle>
+                        <circle cx="20" cy="60" r="15"></circle>
+                      </g>
+                    </g>
+                  </mask>
+                  <mask id="clipping" clipPathUnits="userSpaceOnUse">
+                    <g id="lines" filter="url(#roundness)">
+                      <g mask="url(#shapes)" stroke="white">
+                        <line x1="-50" y1="-40" x2="150" y2="-40"></line>
+                        <line x1="-50" y1="-31" x2="150" y2="-31"></line>
+                        <line x1="-50" y1="-22" x2="150" y2="-22"></line>
+                        <line x1="-50" y1="-13" x2="150" y2="-13"></line>
+                        <line x1="-50" y1="-4" x2="150" y2="-4"></line>
+                        <line x1="-50" y1="5" x2="150" y2="5"></line>
+                        <line x1="-50" y1="14" x2="150" y2="14"></line>
+                        <line x1="-50" y1="23" x2="150" y2="23"></line>
+                        <line x1="-50" y1="32" x2="150" y2="32"></line>
+                        <line x1="-50" y1="41" x2="150" y2="41"></line>
+                        <line x1="-50" y1="50" x2="150" y2="50"></line>
+                        <line x1="-50" y1="59" x2="150" y2="59"></line>
+                        <line x1="-50" y1="68" x2="150" y2="68"></line>
+                        <line x1="-50" y1="77" x2="150" y2="77"></line>
+                        <line x1="-50" y1="86" x2="150" y2="86"></line>
+                        <line x1="-50" y1="95" x2="150" y2="95"></line>
+                        <line x1="-50" y1="104" x2="150" y2="104"></line>
+                        <line x1="-50" y1="113" x2="150" y2="113"></line>
+                        <line x1="-50" y1="122" x2="150" y2="122"></line>
+                        <line x1="-50" y1="131" x2="150" y2="131"></line>
+                        <line x1="-50" y1="140" x2="150" y2="140"></line>
+                      </g>
+                    </g>
+                  </mask>
+                </defs>
+                <rect x="0" y="0" width="100" height="100" rx="0" ry="0" mask="url(#clipping)"></rect>
+                <g>
+                  <path d="M33.52,68.12 C35.02,62.8 39.03,58.52 44.24,56.69 C49.26,54.93 54.68,55.61 59.04,58.4 C59.04,58.4 56.24,60.53 56.24,60.53 C55.45,61.13 55.68,62.37 56.63,62.64 C56.63,62.64 67.21,65.66 67.21,65.66 C67.98,65.88 68.75,65.3 68.74,64.5 C68.74,64.5 68.68,53.5 68.68,53.5 C68.67,52.51 67.54,51.95 66.75,52.55 C66.75,52.55 64.04,54.61 64.04,54.61 C57.88,49.79 49.73,48.4 42.25,51.03 C35.2,53.51 29.78,59.29 27.74,66.49 C27.29,68.08 28.22,69.74 29.81,70.19 C30.09,70.27 30.36,70.31 30.63,70.31 C31.94,70.31 33.14,69.44 33.52,68.12Z"></path>
+                  <path d="M69.95,74.85 C68.35,74.4 66.7,75.32 66.25,76.92 C64.74,82.24 60.73,86.51 55.52,88.35 C50.51,90.11 45.09,89.43 40.73,86.63 C40.73,86.63 43.53,84.51 43.53,84.51 C44.31,83.91 44.08,82.67 43.13,82.4 C43.13,82.4 32.55,79.38 32.55,79.38 C31.78,79.16 31.02,79.74 31.02,80.54 C31.02,80.54 31.09,91.54 31.09,91.54 C31.09,92.53 32.22,93.09 33.01,92.49 C33.01,92.49 35.72,90.43 35.72,90.43 C39.81,93.63 44.77,95.32 49.84,95.32 C52.41,95.32 55,94.89 57.51,94.01 C64.56,91.53 69.99,85.75 72.02,78.55 C72.47,76.95 71.54,75.3 69.95,74.85Z"></path>
+                </g>
+              </svg>
+            </div>
+          </button>
+        </header>
+
+        <!-- Chat Window -->
+        <main id="chat-window" role="log" aria-live="polite" aria-label="Chat history">
+          <!-- Messages injected by chat.js -->
+        </main>
+
+        <!-- Similarity Score Bar -->
+        <div id="score-bar" aria-label="Similarity score" hidden>
+          <span id="score-label">Confidence</span>
+          <div id="score-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+            <div id="score-fill">
+              <div class="glow-tip"></div>
+            </div>
+          </div>
+          <span id="score-value">0%</span>
+        </div>
+
+        <!-- Input Area -->
+        <footer id="input-area">
+          <div id="input-wrapper">
+            <textarea
+              id="user-input"
+              placeholder="Query hardware component..."
+              rows="1"
+              aria-label="Type your answer"
+              maxlength="200"
+              autocomplete="off"
+              spellcheck="true"
+            ></textarea>
+            <div class="input-actions">
+              <button id="send-btn" aria-label="Send message" disabled>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M22 2L15 22 11 13 2 9l20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <p id="hint-text" aria-hidden="true">
+            <kbd>Enter</kbd> to send &nbsp;&middot;&nbsp; <kbd>Shift</kbd> + <kbd>Enter</kbd> for newline
+          </p>
+        </footer>
+
+      </div>
+    </div>
+
     <script type="module" src="src/ui/main.js"></script>
   </body>
 </html>
