@@ -1,55 +1,55 @@
 // OWNER: Dev 2 (UI Track) | Wire input, Send, Reset, Enter → answer()
 // NOTE: Uses a local mock answer() until engine/index.js is complete.
 // TODO: When Dev 1 finishes the engine, replace the mock block below with:
-import { answer } from '../engine/index.js';
+//       import { answer } from '../engine/index.js';
 
 import { addMessage, clearChat, showTyping, hideTyping, playAudio } from './chat.js';
 
 // ─── MOCK answer() — DELETE this block once engine/index.js is done ─
-// function answer(text) {
-//   const t = String(text ?? '').trim().toLowerCase();
-//   if (!t) return { status: 'empty', item: null, score: 0 };
-//
-//   const ITEMS = [
-//     { name: 'Central Processing Unit (CPU)' },
-//     { name: 'Motherboard' },
-//     { name: 'Random Access Memory (RAM)' },
-//     { name: 'Storage Drive (SSD / HDD)' },
-//     { name: 'Power Supply Unit (PSU)' },
-//     { name: 'Graphics Processing Unit (GPU)' },
-//     { name: 'Computer Case (Chassis)' },
-//     { name: 'Cooling System (CPU Cooler / Case Fans)' },
-//     { name: 'Monitor' },
-//     { name: 'Keyboard' },
-//     { name: 'Mouse' },
-//   ];
-//
-//   const keywords = [
-//     ['cpu', 'processor', 'central processing'],
-//     ['motherboard', 'mobo', 'mainboard'],
-//     ['ram', 'memory', 'random access'],
-//     ['storage', 'ssd', 'hdd', 'hard drive', 'solid state'],
-//     ['psu', 'power supply'],
-//     ['gpu', 'graphics', 'video card', 'display adapter'],
-//     ['case', 'chassis', 'tower'],
-//     ['cooling', 'cooler', 'fan', 'heatsink'],
-//     ['monitor', 'display', 'screen'],
-//     ['keyboard'],
-//     ['mouse'],
-//   ];
-//   for (let i = 0; i < keywords.length; i++) {
-//     if (keywords[i].some(kw => t.includes(kw))) {
-//       return { status: 'correct', item: ITEMS[i], score: 0.93 };
-//     }
-//   }
-//   if (t.length <= 2) return { status: 'ambiguous', item: null, score: 0.52 };
-//   return { status: 'unrecognized', item: null, score: 0.17 };
-// }
+function answer(text) {
+  const t = String(text ?? '').trim().toLowerCase();
+  if (!t) return { status: 'empty', item: null, score: 0 };
+
+  const ITEMS = [
+    { name: 'Central Processing Unit (CPU)' },
+    { name: 'Motherboard' },
+    { name: 'Random Access Memory (RAM)' },
+    { name: 'Storage Drive (SSD / HDD)' },
+    { name: 'Power Supply Unit (PSU)' },
+    { name: 'Graphics Processing Unit (GPU)' },
+    { name: 'Computer Case (Chassis)' },
+    { name: 'Cooling System (CPU Cooler / Case Fans)' },
+    { name: 'Monitor' },
+    { name: 'Keyboard' },
+    { name: 'Mouse' },
+  ];
+
+  const keywords = [
+    ['cpu', 'processor', 'central processing'],
+    ['motherboard', 'mobo', 'mainboard'],
+    ['ram', 'memory', 'random access'],
+    ['storage', 'ssd', 'hdd', 'hard drive', 'solid state'],
+    ['psu', 'power supply'],
+    ['gpu', 'graphics', 'video card', 'display adapter'],
+    ['case', 'chassis', 'tower'],
+    ['cooling', 'cooler', 'fan', 'heatsink'],
+    ['monitor', 'display', 'screen'],
+    ['keyboard'],
+    ['mouse'],
+  ];
+  for (let i = 0; i < keywords.length; i++) {
+    if (keywords[i].some(kw => t.includes(kw))) {
+      return { status: 'correct', item: ITEMS[i], score: 0.93 };
+    }
+  }
+  if (t.length <= 2) return { status: 'ambiguous', item: null, score: 0.52 };
+  return { status: 'unrecognized', item: null, score: 0.17 };
+}
 // ────────────────────────────────────────────────────────────────────
 
 // ── DOM Refs ─────────────────────────────────────────────────────────
-const inputEl = document.getElementById('user-input');
-const sendBtn = document.getElementById('send-btn');
+const inputEl  = document.getElementById('user-input');
+const sendBtn  = document.getElementById('send-btn');
 const resetBtn = document.getElementById('reset-btn');
 const newChatBtn = document.getElementById('new-chat-btn');
 const historyList = document.getElementById('history-list');
@@ -65,15 +65,15 @@ function saveSessions() {
 
 function renderSidebar() {
   historyList.innerHTML = '';
-  const sorted = sessions.slice().sort((a, b) => b.date - a.date);
-
+  const sorted = sessions.slice().sort((a,b) => b.date - a.date);
+  
   sorted.forEach(sess => {
     const el = document.createElement('div');
     el.className = `history-item ${sess.id === currentSessionId ? 'active' : ''}`;
     el.innerHTML = `
       <div class="history-item-text">
         <div class="history-item-title">${sess.title}</div>
-        <div class="history-item-date">${new Date(sess.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(sess.date).toLocaleDateString()}</div>
+        <div class="history-item-date">${new Date(sess.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(sess.date).toLocaleDateString()}</div>
       </div>
       <button class="delete-sess-btn" aria-label="Delete chat" data-tooltip="Delete chat">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -81,7 +81,7 @@ function renderSidebar() {
         </svg>
       </button>
     `;
-
+    
     el.addEventListener('click', (e) => {
       // If clicking the delete button, handle delete
       if (e.target.closest('.delete-sess-btn')) {
@@ -90,7 +90,7 @@ function renderSidebar() {
         loadSession(sess.id);
       }
     });
-
+    
     historyList.appendChild(el);
   });
 }
@@ -98,7 +98,7 @@ function renderSidebar() {
 function deleteSession(id) {
   sessions = sessions.filter(s => s.id !== id);
   saveSessions();
-
+  
   if (currentSessionId === id) {
     if (sessions.length > 0) {
       const latest = sessions.reduce((max, s) => s.date > max.date ? s : max, sessions[0]);
@@ -113,17 +113,17 @@ function loadSession(id) {
   currentSessionId = id;
   const sess = sessions.find(s => s.id === id);
   if (!sess) return;
-
+  
   clearChat();
   document.getElementById('welcome-card')?.remove();
-
+  
   if (sess.messages.length === 0) {
     renderWelcome();
   } else {
     // Re-render old messages
     // Mute audio during load to prevent a cascade of sounds
     const audioOrig = window.AudioContext;
-    window.AudioContext = null;
+    window.AudioContext = null; 
     sess.messages.forEach(m => addMessage(m.role, m.text, m.status, m.score));
     window.AudioContext = audioOrig;
   }
@@ -179,10 +179,10 @@ function handleSend() {
   }
 
   document.getElementById('welcome-card')?.remove();
-
+  
   addMessage('user', text);
   playAudio('send');
-
+  
   if (sess) sess.messages.push({ role: 'user', text });
   saveSessions();
 
@@ -195,9 +195,9 @@ function handleSend() {
 
   setTimeout(() => {
     hideTyping();
-    const result = answer(text);
+    const result  = answer(text);
     const botText = _buildBotText(result);
-
+    
     if (result.status === 'correct') playAudio('success');
     else if (result.status === 'unrecognized' || result.status === 'ambiguous') playAudio('error');
 
@@ -246,8 +246,8 @@ function handleReset() {
 
 // ── Input Helpers ──────────────────────────────────────────────────────
 function setInputLocked(locked) {
-  inputEl.disabled = locked;
-  sendBtn.disabled = locked;
+  inputEl.disabled  = locked;
+  sendBtn.disabled  = locked;
 }
 
 function syncSendBtn() {
