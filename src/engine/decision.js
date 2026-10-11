@@ -11,7 +11,7 @@ export function decide(result) {
   const { item, score, runnerUp, inputLength } = result;
 
   // 1. Short input -> Ambiguous (e.g., "ca", "un")
-  if (inputLength <= THRESHOLDS.minLength) {
+  if (inputLength <= THRESHOLDS.minLength && score < THRESHOLDS.correct) {
     return { status: "ambiguous", item: null, score: 0.50 };
   }
 

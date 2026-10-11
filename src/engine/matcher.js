@@ -4,6 +4,8 @@ import { similarity } from "./levenshtein.js";
 import { ANSWER_KEY } from "./data.js";
 import { preprocess } from "./preprocess.js";
 
+const SHORT_ACRONYMS = new Set(["cpu", "gpu", "ram", "psu", "ssd", "hdd"]);
+
 const preparedItems = ANSWER_KEY.map(item => ({
   item,
   aliases: item.aliases.map(alias => {
@@ -33,12 +35,12 @@ function tokenSimilarity(left, right) {
   if (left === right) return 1;
   if (left.length < 4 || right.length < 4) return 0;
 
-  const score = similarity(left, right);
+  const score = aliasTypoSimilarity(left, right);
   return score >= 0.78 ? score : 0;
 }
 
 function aliasTypoSimilarity(left, right) {
-  if (left.length !== right.length || left.length < 4) return similarity(left, right);
+  if (left.length !== right.length || left.length < 3) return similarity(left, right);
 
   const differences = [];
   for (let index = 0; index < left.length; index++) {
@@ -81,9 +83,17 @@ export function match(cleanText) {
   if (!cleanText.includes(" ")) {
     const typoCandidates = preparedItems.flatMap(({ item, aliases }) =>
       aliases
-        .filter(({ cleanAlias }) => !cleanAlias.includes(" "))
-        .map(({ alias, cleanAlias }) => ({ item, alias, score: aliasTypoSimilarity(cleanText, cleanAlias) }))
-        .filter(candidate => candidate.score >= 0.75)
+        .map(({ alias, cleanAlias }) => {
+          const compactAlias = cleanAlias.replace(/\s+/g, "");
+          const shortAcronymTypo = SHORT_ACRONYMS.has(compactAlias) && cleanText.length === 3;
+          return {
+            item,
+            alias,
+            score: aliasTypoSimilarity(cleanText, compactAlias),
+            minimumScore: shortAcronymTypo ? 2 / 3 : 0.75
+          };
+        })
+        .filter(candidate => candidate.score >= candidate.minimumScore)
     );
     const bestByItem = new Map();
     for (const candidate of typoCandidates) {
