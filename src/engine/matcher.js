@@ -37,6 +37,26 @@ function tokenSimilarity(left, right) {
   return score >= 0.78 ? score : 0;
 }
 
+function aliasTypoSimilarity(left, right) {
+  if (left.length !== right.length || left.length < 4) return similarity(left, right);
+
+  const differences = [];
+  for (let index = 0; index < left.length; index++) {
+    if (left[index] !== right[index]) differences.push(index);
+  }
+
+  if (
+    differences.length === 2 &&
+    differences[1] === differences[0] + 1 &&
+    left[differences[0]] === right[differences[1]] &&
+    left[differences[1]] === right[differences[0]]
+  ) {
+    return 1 - 1 / left.length;
+  }
+
+  return similarity(left, right);
+}
+
 export function match(cleanText) {
   const exactMatches = preparedItems.flatMap(({ item, aliases }) =>
     aliases
@@ -56,6 +76,33 @@ export function match(cleanText) {
       runnerUpItem,
       inputLength: cleanText.length
     };
+  }
+
+  if (!cleanText.includes(" ")) {
+    const typoCandidates = preparedItems.flatMap(({ item, aliases }) =>
+      aliases
+        .filter(({ cleanAlias }) => !cleanAlias.includes(" "))
+        .map(({ alias, cleanAlias }) => ({ item, alias, score: aliasTypoSimilarity(cleanText, cleanAlias) }))
+        .filter(candidate => candidate.score >= 0.75)
+    );
+    const bestByItem = new Map();
+    for (const candidate of typoCandidates) {
+      const current = bestByItem.get(candidate.item);
+      if (!current || candidate.score > current.score) bestByItem.set(candidate.item, candidate);
+    }
+
+    const rankedTypos = [...bestByItem.values()].sort((left, right) => right.score - left.score);
+    if (rankedTypos.length > 0) {
+      const [best, runnerUp] = rankedTypos;
+      return {
+        item: best.item,
+        alias: best.alias,
+        score: best.score,
+        runnerUp: runnerUp?.score ?? 0,
+        runnerUpItem: runnerUp?.item ?? null,
+        inputLength: cleanText.length
+      };
+    }
   }
 
   const evidence = new Map(preparedItems.map(({ item }) => [item, { score: 0, alias: null, strongestTerm: 0 }]));

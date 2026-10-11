@@ -158,6 +158,10 @@ for (const group of definitionGroups) {
 }
 
 const behaviorCases = [
+  { prompt: "procesor", status: "correct", item: "Central Processing Unit (CPU)" },
+  { prompt: "keybaord", status: "correct", item: "Keyboard" },
+  { prompt: "mous", status: "correct", item: "Mouse" },
+  { prompt: "hellp", status: "unrecognized" },
   { prompt: "The CPU and RAM work with a storage drive.", status: "ambiguous" },
   { prompt: "A printer is an output device that produces physical copies of documents.", status: "unrecognized" },
   { prompt: "A printer outputs paper copies of digital documents.", status: "unrecognized" },
@@ -180,7 +184,7 @@ const behaviorCases = [
 for (const testCase of behaviorCases) {
   promptCount++;
   const result = answer(testCase.prompt);
-  if (result.status !== testCase.status) {
+  if (result.status !== testCase.status || (testCase.item && result.item?.name !== testCase.item)) {
     const nearest = match(preprocess(testCase.prompt));
     failures.push({
       expected: testCase.status,
