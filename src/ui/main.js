@@ -72,8 +72,8 @@ function renderSidebar() {
     el.className = `history-item ${sess.id === currentSessionId ? 'active' : ''}`;
     el.innerHTML = `
       <div class="history-item-text">
-        <div class="history-item-title">${sess.title}</div>
-        <div class="history-item-date">${new Date(sess.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(sess.date).toLocaleDateString()}</div>
+        <div class="history-item-title"></div>
+        <div class="history-item-date"></div>
       </div>
       <button class="delete-sess-btn" aria-label="Delete chat" data-tooltip="Delete chat">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -81,6 +81,8 @@ function renderSidebar() {
         </svg>
       </button>
     `;
+    el.querySelector('.history-item-title').textContent = sess.title;
+    el.querySelector('.history-item-date').textContent = `${new Date(sess.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(sess.date).toLocaleDateString()}`;
 
     el.addEventListener('click', (e) => {
       // If clicking the delete button, handle delete
@@ -215,11 +217,11 @@ function _buildBotText({ status, item, score }) {
   const pct = Math.round((score ?? 0) * 100);
   switch (status) {
     case 'correct':
-      return `"${item.name}" is in the answer key. (${pct}% match)`;
+      return `"${item.name}" is in the answer key. (evidence score: ${pct}%)`;
     case 'ambiguous':
-      return `Close, but not confident enough${item ? ` — nearest: "${item.name}"` : ''}. Try being more specific. (${pct}% similarity)`;
+      return `${item ? `Closest answer-key item: "${item.name}". ` : 'I could not identify a closest answer-key item. '}The match is uncertain; try adding more defining details. (evidence score: ${pct}%)`;
     case 'unrecognized':
-      return `That doesn't match any hardware component in the answer key. (${pct}% — below threshold)`;
+      return `No hardware component matched strongly enough. (evidence score: ${pct}%)`;
     case 'empty':
       return `Please type something before sending.`;
     default:

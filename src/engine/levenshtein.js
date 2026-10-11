@@ -4,23 +4,25 @@ export function levenshtein(a, b) {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
 
-  // Initialize matrix
-  const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+  const left = a.length >= b.length ? a : b;
+  const right = a.length >= b.length ? b : a;
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  let current = new Array(right.length + 1);
 
-  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
-
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,      // Deletion
-        matrix[i][j - 1] + 1,      // Insertion
-        matrix[i - 1][j - 1] + cost // Substitution
+  for (let i = 1; i <= left.length; i++) {
+    current[0] = i;
+    for (let j = 1; j <= right.length; j++) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+      current[j] = Math.min(
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + cost
       );
     }
+    [previous, current] = [current, previous];
   }
-  return matrix[a.length][b.length];
+
+  return previous[right.length];
 }
 
 export function similarity(a, b) {

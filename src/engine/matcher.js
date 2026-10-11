@@ -4,57 +4,115 @@ import { similarity } from "./levenshtein.js";
 import { ANSWER_KEY } from "./data.js";
 import { preprocess } from "./preprocess.js";
 
+const preparedItems = ANSWER_KEY.map(item => ({
+  item,
+  aliases: item.aliases.map(alias => {
+    const cleanAlias = preprocess(alias);
+    return { alias, cleanAlias };
+  }),
+  terms: [...new Map(item.aliases.flatMap(alias =>
+    preprocess(alias).split(" ").filter(Boolean).map(term => [term, alias])
+  ))].map(([term, alias]) => ({ term, alias }))
+}));
+
+const termItemCounts = new Map();
+for (const { terms } of preparedItems) {
+  for (const { term } of terms) {
+    termItemCounts.set(term, (termItemCounts.get(term) ?? 0) + 1);
+  }
+}
+
+const termWeights = new Map(
+  [...termItemCounts].map(([term, itemCount]) => [
+    term,
+    1 + Math.log((preparedItems.length + 1) / (itemCount + 1))
+  ])
+);
+
+function tokenSimilarity(left, right) {
+  if (left === right) return 1;
+  if (left.length < 4 || right.length < 4) return 0;
+
+  const score = similarity(left, right);
+  return score >= 0.78 ? score : 0;
+}
+
 export function match(cleanText) {
-  let bestItem = null;
-  let bestAlias = null;
-  let bestScore = -1;
-  let runnerUpScore = -1;
-  let runnerUpItem = null;
+  const exactMatches = preparedItems.flatMap(({ item, aliases }) =>
+    aliases
+      .filter(({ cleanAlias }) => cleanText === cleanAlias)
+      .map(({ alias }) => ({ item, alias }))
+  );
 
-  const inputWords = cleanText.split(" ");
-
-  for (const item of ANSWER_KEY) {
-    for (const alias of item.aliases) {
-      const cleanAlias = preprocess(alias);
-
-      // 1. Base Levenshtein Score
-      let score = similarity(cleanText, cleanAlias);
-
-      // 2. Word Overlap Bonus (Replaces aggressive substring boost)
-      const aliasWords = cleanAlias.split(" ").filter(w => w.length > 2); // Ignore tiny words
-      let matchedWords = 0;
-
-      for (const w of aliasWords) {
-        if (inputWords.includes(w)) matchedWords++;
-      }
-
-      if (matchedWords > 0) {
-        // Boost based on HOW MANY words matched. 
-        // 1 word = 0.73, 2 words = 0.81, 3 words = 0.89 (capped at 0.98)
-        const overlapScore = Math.min(0.98, 0.65 + (matchedWords * 0.08));
-        score = Math.max(score, overlapScore);
-      }
-
-      // 3. Track best and runner-up
-      if (score > bestScore) {
-        runnerUpScore = bestScore;
-        runnerUpItem = bestItem;
-        bestScore = score;
-        bestItem = item;
-        bestAlias = alias;
-      } else if (score > runnerUpScore && item !== bestItem) {
-        runnerUpScore = score;
-        runnerUpItem = item;
-      }
-    }
+  if (exactMatches.length > 0) {
+    const exactItems = [...new Set(exactMatches.map(result => result.item))];
+    const best = exactMatches[0];
+    const runnerUpItem = exactItems.find(item => item !== best.item) ?? null;
+    return {
+      item: best.item,
+      alias: best.alias,
+      score: runnerUpItem ? 0.5 : 1,
+      runnerUp: runnerUpItem ? 0.5 : 0,
+      runnerUpItem,
+      inputLength: cleanText.length
+    };
   }
 
+  const evidence = new Map(preparedItems.map(({ item }) => [item, { score: 0, alias: null, strongestTerm: 0 }]));
+  let totalEvidence = 0;
+  let matchedTokenCount = 0;
+
+  for (const inputToken of new Set(cleanText.split(" ").filter(Boolean))) {
+    let tokenWasMatched = false;
+
+    for (const { item, terms } of preparedItems) {
+      let bestTermEvidence = 0;
+      let bestTermAlias = null;
+      for (const { term, alias } of terms) {
+        const score = tokenSimilarity(inputToken, term);
+        if (score === 0) continue;
+
+        const termEvidence = score ** 2 * termWeights.get(term);
+        if (termEvidence > bestTermEvidence) {
+          bestTermEvidence = termEvidence;
+          bestTermAlias = alias;
+        }
+      }
+
+      if (bestTermEvidence > 0) {
+        tokenWasMatched = true;
+        const itemEvidence = evidence.get(item);
+        itemEvidence.score += bestTermEvidence;
+        if (bestTermEvidence > itemEvidence.strongestTerm) {
+          itemEvidence.alias = bestTermAlias;
+          itemEvidence.strongestTerm = bestTermEvidence;
+        }
+        totalEvidence += bestTermEvidence;
+      }
+    }
+
+    if (tokenWasMatched) matchedTokenCount++;
+  }
+
+  if (totalEvidence === 0) {
+    return { item: null, alias: null, score: 0, runnerUp: 0, runnerUpItem: null, inputLength: cleanText.length };
+  }
+
+  const rankedCandidates = [...evidence]
+    .map(([item, result]) => ({ item, ...result }))
+    .sort((left, right) => right.score - left.score);
+  const [best, runnerUp] = rankedCandidates;
+  const evidenceCoverage = Math.min(1, matchedTokenCount / 2);
+  const topEvidence = best.score + runnerUp.score;
+  const confidence = best.score / topEvidence * evidenceCoverage;
+  const runnerUpConfidence = runnerUp.score / topEvidence * evidenceCoverage;
+
   return {
-    item: bestItem,
-    alias: bestAlias,
-    score: bestScore,
-    runnerUp: runnerUpScore,
-    runnerUpItem: runnerUpItem,
+    item: best.score > 0 ? best.item : null,
+    alias: best.alias,
+    score: confidence,
+    runnerUp: runnerUpConfidence,
+    runnerUpItem: runnerUp.item,
     inputLength: cleanText.length
   };
 }

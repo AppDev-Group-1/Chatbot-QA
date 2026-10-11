@@ -13,64 +13,11 @@ export function preprocess(text) {
   const stopwords = [
     "it", "is", "the", "a", "an", "of", "in", "on", "to", "and", "or", "that", "this", "are", "was", "were", "for", "with", "as",
     // NEW GENERIC WORDS TO IGNORE:
-    "unit", "system", "device", "component", "hardware", "general", "purpose", "runs", "repeatedly"
+    "device", "component", "hardware", "general", "purpose", "runs", "repeatedly",
+    "temperature", "temperatures"
   ];
   let words = clean.split(" ").filter(w => w && !stopwords.includes(w));
   clean = words.join(" ");
 
-  // 4. Acronym Expansion (Crucial for Levenshtein to match abbreviations)
-  const acronyms = {
-    // CPU
-    "cpu": "central processing unit",
-    "processor": "central processing unit",
-
-    // Motherboard
-    "mobo": "motherboard",
-    "mb": "motherboard",
-    "mainboard": "motherboard",
-
-    // RAM
-    "ram": "random access memory",
-
-    // Storage Drive
-    "ssd": "solid state drive",
-    "hdd": "hard disk drive",
-    "hard drive": "storage drive",
-    "solid state": "storage drive",
-
-    // PSU
-    "psu": "power supply unit",
-    "power supply": "power supply unit",
-
-    // GPU
-    "gpu": "graphics processing unit",
-    "graphics card": "graphics processing unit",
-    "video card": "graphics processing unit",
-
-    // Computer Case
-    "chassis": "computer case",
-    "tower": "computer case",
-
-    // Cooling System
-    "cooler": "cooling system",
-    "fan": "cooling system",
-    "heatsink": "cooling system",
-
-    // Monitor
-    "screen": "monitor",
-    "display": "monitor",
-    "vdu": "monitor",
-
-    // Keyboard
-    "kb": "keyboard",
-
-    // Mouse
-    "pointer": "mouse"
-  };
-  for (const [key, value] of Object.entries(acronyms)) {
-    const regex = new RegExp(`\\b${key}\\b`, 'g');
-    clean = clean.replace(regex, value);
-  }
-
-  return clean.trim();
+  return clean;
 }
