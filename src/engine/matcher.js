@@ -4,6 +4,8 @@ import { similarity } from "./levenshtein.js";
 import { ANSWER_KEY } from "./data.js";
 import { preprocess } from "./preprocess.js";
 
+const SHORT_ACRONYMS = new Set(["cpu", "gpu", "ram", "psu", "ssd", "hdd"]);
+
 const preparedItems = ANSWER_KEY.map(item => ({
   item,
   aliases: item.aliases.map(alias => {
@@ -33,8 +35,28 @@ function tokenSimilarity(left, right) {
   if (left === right) return 1;
   if (left.length < 4 || right.length < 4) return 0;
 
-  const score = similarity(left, right);
+  const score = aliasTypoSimilarity(left, right);
   return score >= 0.78 ? score : 0;
+}
+
+function aliasTypoSimilarity(left, right) {
+  if (left.length !== right.length || left.length < 3) return similarity(left, right);
+
+  const differences = [];
+  for (let index = 0; index < left.length; index++) {
+    if (left[index] !== right[index]) differences.push(index);
+  }
+
+  if (
+    differences.length === 2 &&
+    differences[1] === differences[0] + 1 &&
+    left[differences[0]] === right[differences[1]] &&
+    left[differences[1]] === right[differences[0]]
+  ) {
+    return 1 - 1 / left.length;
+  }
+
+  return similarity(left, right);
 }
 
 export function match(cleanText) {
@@ -56,6 +78,41 @@ export function match(cleanText) {
       runnerUpItem,
       inputLength: cleanText.length
     };
+  }
+
+  if (!cleanText.includes(" ")) {
+    const typoCandidates = preparedItems.flatMap(({ item, aliases }) =>
+      aliases
+        .map(({ alias, cleanAlias }) => {
+          const compactAlias = cleanAlias.replace(/\s+/g, "");
+          const shortAcronymTypo = SHORT_ACRONYMS.has(compactAlias) && cleanText.length === 3;
+          return {
+            item,
+            alias,
+            score: aliasTypoSimilarity(cleanText, compactAlias),
+            minimumScore: shortAcronymTypo ? 2 / 3 : 0.75
+          };
+        })
+        .filter(candidate => candidate.score >= candidate.minimumScore)
+    );
+    const bestByItem = new Map();
+    for (const candidate of typoCandidates) {
+      const current = bestByItem.get(candidate.item);
+      if (!current || candidate.score > current.score) bestByItem.set(candidate.item, candidate);
+    }
+
+    const rankedTypos = [...bestByItem.values()].sort((left, right) => right.score - left.score);
+    if (rankedTypos.length > 0) {
+      const [best, runnerUp] = rankedTypos;
+      return {
+        item: best.item,
+        alias: best.alias,
+        score: best.score,
+        runnerUp: runnerUp?.score ?? 0,
+        runnerUpItem: runnerUp?.item ?? null,
+        inputLength: cleanText.length
+      };
+    }
   }
 
   const evidence = new Map(preparedItems.map(({ item }) => [item, { score: 0, alias: null, strongestTerm: 0 }]));

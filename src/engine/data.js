@@ -152,7 +152,7 @@ export const ANSWER_KEY = [
     id: 10,
     name: "Keyboard",
     aliases: [
-      "keyboard", "keypad", "qwerty keyboard",
+      "type", "typing", "keyboard", "keypad", "qwerty keyboard",
       "types letters", "input device for typing", "used to enter text",
       "a set of keys used to enter data and commands",
       "input device with keys used to type text and commands",
