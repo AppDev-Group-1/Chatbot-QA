@@ -1,33 +1,37 @@
 // OWNER: Member C | Threshold and status logic
 // TODO: calibrate thresholds using tests/test-cases.md results
 export const THRESHOLDS = {
-  correct: 0.75,       // Best match must be at least 75% similar
-  ambiguousGap: 0.08,  // If best - runnerUp < 0.08, it's too close to call
-  minLength: 2         // Inputs shorter than 2 chars are ambiguous
+  correct: 0.66,       // Best component must have a clear share of the evidence
+  ambiguousGap: 0.25,  // Similar top scores indicate mixed or unclear clues
+  minLength: 2,        // Inputs shorter than 2 chars are ambiguous
+  minScore: 0.55       // Reject weak single-component evidence
 };
 
 export function decide(result) {
   const { item, score, runnerUp, inputLength } = result;
 
-  // 1. Check short input FIRST
+  // 1. Short input -> Ambiguous (e.g., "ca", "un")
   if (inputLength <= THRESHOLDS.minLength) {
     return { status: "ambiguous", item: null, score: 0.50 };
   }
 
-  // 2. Check if score is too low
-  if (!item || score < THRESHOLDS.correct) {
-    // Check if it's close enough to be ambiguous
-    if (score >= 0.50 && score - runnerUp < THRESHOLDS.ambiguousGap) {
-      return { status: "ambiguous", item: item, score: score };
-    }
+  if (!item) {
+    return { status: "unrecognized", item: null, score: score > 0 ? score : 0.17 };
+  }
+
+  // Preserve uncertainty when the prompt contains comparable evidence for multiple items.
+  if (runnerUp >= 0.35 && score - runnerUp < THRESHOLDS.ambiguousGap) {
+    return { status: "ambiguous", item, score };
+  }
+
+  // Reject weak single-item evidence, such as an unrelated word with one fuzzy overlap.
+  if (score < THRESHOLDS.minScore) {
+    return { status: "unrecognized", item: null, score };
+  }
+
+  if (score < THRESHOLDS.correct) {
     return { status: "unrecognized", item: null, score: score };
   }
 
-  // 3. Check if top two matches are too close
-  if (score - runnerUp < THRESHOLDS.ambiguousGap && runnerUp > 0.50) {
-    return { status: "ambiguous", item: item, score: score };
-  }
-
-  // 4. Otherwise, it's correct
   return { status: "correct", item: item, score: score };
 }

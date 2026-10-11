@@ -3,7 +3,7 @@
 ## 1. Overview
 
 **Course:** CS for Intelligent Systems  
-**Algorithm:** Levenshtein Distance — measures how many single-character edits (insertions, deletions, substitutions) are needed to turn one string into another. The chatbot uses similarity scores derived from this algorithm to match a user's typed answer against a list of 11 computer hardware items and their known aliases.
+**Algorithm:** The engine uses Levenshtein similarity on individual words to tolerate typos, then weights keyword evidence by how distinctive each term is across the 11 hardware items and their aliases. Close evidence for multiple items is reported as ambiguous instead of forcing a guess. This is a deterministic answer-key matcher, not a language model; its coverage depends on the aliases and definition phrases in `src/engine/data.js`.
 
 ---
 
@@ -66,6 +66,11 @@ answer(text: string) -> { status, item, score }
 ```bash
 python -m http.server 5500
 # then open http://localhost:5500
+```
+
+**Engine benchmark**
+```bash
+node tests/prompt-benchmark.mjs
 ```
 
 **Deployment:** Push `main` to GitHub and enable **GitHub Pages** (source: root, branch: `main`).
