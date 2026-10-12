@@ -20,7 +20,7 @@ export function decide(result) {
   }
 
   // Preserve uncertainty when the prompt contains comparable evidence for multiple items.
-  if (runnerUp >= 0.35 && score - runnerUp < THRESHOLDS.ambiguousGap) {
+  if (runnerUp >= 0.2 && score - runnerUp < THRESHOLDS.ambiguousGap) {
     return { status: "ambiguous", item, score };
   }
 

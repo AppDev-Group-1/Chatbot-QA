@@ -27,7 +27,8 @@ export const ANSWER_KEY = [
     id: 2,
     name: "Motherboard",
     aliases: [
-      "board", "motherboard", "mobo", "mainboard", "mb", "main circuit board",
+      "board", "motherboard", "mother board", "mobo", "mainboard", "mb", "main circuit board", 
+      "mathorbaord", "motharbaord", "mathorboard", "motharboard",
       "system board", "the backbone of the computer", "connects all components",
       "the main printed circuit board in general purpose computers",
       "main circuit board connects the processor memory storage and peripherals",
@@ -152,7 +153,7 @@ export const ANSWER_KEY = [
     id: 10,
     name: "Keyboard",
     aliases: [
-      "type", "typing", "keyboard", "keypad", "qwerty keyboard",
+      "type", "typing", "keyboard", "keypad", "qwerty keyboard", "kb",
       "types letters", "input device for typing", "used to enter text",
       "a set of keys used to enter data and commands",
       "input device with keys used to type text and commands",

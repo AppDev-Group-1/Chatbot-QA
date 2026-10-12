@@ -115,6 +115,42 @@ export function match(cleanText) {
     }
   }
 
+  const inputTokens = cleanText.split(" ").filter(Boolean);
+  if (inputTokens.length > 1 && inputTokens.length <= 4) {
+    const phraseTypoCandidates = preparedItems.flatMap(({ item, aliases }) =>
+      aliases.flatMap(({ alias, cleanAlias }) => {
+        const aliasTokens = cleanAlias.split(" ").filter(Boolean);
+        if (aliasTokens.length !== inputTokens.length) return [];
+
+        const tokenScores = inputTokens.map((token, index) =>
+          aliasTypoSimilarity(token, aliasTokens[index])
+        );
+        const hasTypo = tokenScores.some(score => score < 1);
+        if (!hasTypo || tokenScores.some(score => score < 0.78)) return [];
+
+        return [{ item, alias, score: tokenScores.reduce((sum, score) => sum + score, 0) / tokenScores.length }];
+      })
+    );
+    const bestByItem = new Map();
+    for (const candidate of phraseTypoCandidates) {
+      const current = bestByItem.get(candidate.item);
+      if (!current || candidate.score > current.score) bestByItem.set(candidate.item, candidate);
+    }
+
+    const rankedPhrases = [...bestByItem.values()].sort((left, right) => right.score - left.score);
+    if (rankedPhrases.length > 0) {
+      const [best, runnerUp] = rankedPhrases;
+      return {
+        item: best.item,
+        alias: best.alias,
+        score: best.score,
+        runnerUp: runnerUp?.score ?? 0,
+        runnerUpItem: runnerUp?.item ?? null,
+        inputLength: cleanText.length
+      };
+    }
+  }
+
   const evidence = new Map(preparedItems.map(({ item }) => [item, { score: 0, alias: null, strongestTerm: 0 }]));
   let totalEvidence = 0;
   let matchedTokenCount = 0;
